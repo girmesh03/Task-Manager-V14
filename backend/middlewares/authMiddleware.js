@@ -52,7 +52,9 @@ export const verifyJWT = async (req, res, next) => {
       .populate("department", "name isActive");
 
     if (!user) {
-      return next(new CustomError("User not found", 401, "USER_NOT_FOUND"));
+      return next(
+        new CustomError("User not found", 401, "USER_NOT_FOUND_ERROR")
+      );
     }
 
     // Check if user is verified
@@ -69,7 +71,11 @@ export const verifyJWT = async (req, res, next) => {
     // Check if user is active
     if (!user.isActive) {
       return next(
-        new CustomError("User account is deactivated", 401, "USER_DEACTIVATED")
+        new CustomError(
+          "User account is deactivated",
+          401,
+          "USER_DEACTIVATED_ERROR"
+        )
       );
     }
 

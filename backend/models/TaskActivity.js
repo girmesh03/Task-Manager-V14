@@ -87,14 +87,26 @@ taskActivitySchema.pre("save", async function (next) {
 
     // Validate current task status
     if (this.statusChange.from !== task.status) {
-      return next(new CustomError("Status transition mismatch", 400));
+      return next(
+        new CustomError(
+          "Status transition mismatch",
+          400,
+          "STATUS_TRANSITION_MISMATCH_ERROR"
+        )
+      );
     }
 
     // Validate transition rules
     if (
       !validTransitions[this.statusChange.from]?.includes(this.statusChange.to)
     ) {
-      return next(new CustomError("Invalid status transition", 400));
+      return next(
+        new CustomError(
+          "Invalid status transition",
+          400,
+          "INVALID_STATUS_TRANSITION_ERROR"
+        )
+      );
     }
 
     // Update parent task

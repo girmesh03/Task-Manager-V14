@@ -51,7 +51,6 @@ const userSchema = new mongoose.Schema(
       minlength: [6, "Password must be at least 6 characters"],
       select: false,
     },
-    activities: [{ type: mongoose.Schema.Types.ObjectId, ref: "TaskActivity" }],
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
@@ -157,13 +156,17 @@ userSchema.pre("save", async function (next) {
     next();
   } catch (error) {
     next(
-      new CustomError("Password hashing failed", 500, "PASSWORD_HASHING_FAILED")
+      new CustomError(
+        "Password hashing failed",
+        500,
+        "PASSWORD_HASHING_FAILED_ERROR"
+      )
     );
   }
 });
 
 // Password matching method
-userSchema.methods.matchPassword = async function (enteredPassword) {
+userSchema.methods.comparePassword = async function (enteredPassword) {
   // We must re-select the password field as it's excluded by default.
   const user = await this.constructor.findById(this._id).select("+password");
   if (!user) return false;
