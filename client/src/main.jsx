@@ -1,10 +1,15 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 
-import App from './App.jsx'
+import CssBaseline from "@mui/material/CssBaseline";
+import AppTheme from "./theme/AppTheme";
+import App from "./App.jsx";
 
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <App />
-  </StrictMode>,
-)
+    <AppTheme>
+      <CssBaseline enableColorScheme />
+      <App />
+    </AppTheme>
+  </StrictMode>
+);
