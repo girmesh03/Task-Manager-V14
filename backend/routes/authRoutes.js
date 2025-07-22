@@ -6,6 +6,7 @@ import {
   loginUser,
   logoutUser,
   getRefreshToken,
+  getMe,
 } from "../controllers/authController.js";
 
 import rateLimiter from "../middlewares/rateLimiter.js";
@@ -25,12 +26,17 @@ router.route("/login").post(rateLimiter, loginUser);
 
 // @route   POST /api/auth/logout
 // @desc    Logout user
-// @access  Private
-router.route("/logout").delete(verifyJWT, logoutUser);
+// @access  Public
+router.route("/logout").delete(rateLimiter, logoutUser);
 
 // @route   GET /api/auth/refresh-token
 // @desc    Get new access token using refresh token
+// @access  Public
+router.route("/refresh-token").get(rateLimiter, getRefreshToken);
+
+// @route   GET /api/auth/me
+// @desc    Get the current authenticated user
 // @access  Private
-router.route("/refresh-token").get(getRefreshToken);
+router.get("/me", verifyJWT, getMe);
 
 export default router;
