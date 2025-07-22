@@ -1,10 +1,7 @@
 import { lazy } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
-// Error boundary
-import ErrorBoundary from "./components/ErrorBoundary";
-
-// Layouts (keep these as regular imports since they're used frequently)
+// Layouts
 import RootLayout from "./layouts/RootLayout";
 import PublicLayout from "./layouts/PublicLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -19,8 +16,12 @@ const Routines = lazy(() => import("./pages/Routines"));
 const Users = lazy(() => import("./pages/Users"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Route Error
+// Error
+import ErrorBoundary from "./components/ErrorBoundary";
 import RouteError from "./components/RouteError";
+
+// Protect
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Routes
 const router = createBrowserRouter([
@@ -47,7 +48,11 @@ const router = createBrowserRouter([
         ],
       },
       {
-        element: <DashboardLayout />,
+        element: (
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        ),
         children: [
           {
             path: "statistics",

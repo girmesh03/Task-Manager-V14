@@ -322,7 +322,7 @@ export const loginUser = asyncHandler(async (req, res, next) => {
 
 //@desc    Logout user and clear cookies
 //@route   DELETE /api/auth/logout
-//@access  Private
+//@access  Public
 export const logoutUser = asyncHandler(async (req, res, next) => {
   try {
     // Clear cookies
@@ -330,14 +330,12 @@ export const logoutUser = asyncHandler(async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      path: "/",
     });
 
     res.clearCookie("refresh_token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      path: "/api/auth/refresh-token",
     });
 
     res.status(200).json({
@@ -352,7 +350,7 @@ export const logoutUser = asyncHandler(async (req, res, next) => {
 
 //@desc    Get new access token using refresh token
 //@route   GET /api/auth/refresh-token
-//@access  Private
+//@access  Public
 export const getRefreshToken = asyncHandler(async (req, res, next) => {
   try {
     // Extract refresh token from cookies
@@ -378,7 +376,6 @@ export const getRefreshToken = asyncHandler(async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        path: "/api/auth/refresh-token",
       });
 
       if (jwtError.name === "TokenExpiredError") {
@@ -420,7 +417,6 @@ export const getRefreshToken = asyncHandler(async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        path: "/api/auth/refresh-token",
       });
 
       return next(
@@ -435,7 +431,6 @@ export const getRefreshToken = asyncHandler(async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        path: "/api/auth/refresh-token",
       });
 
       return next(
@@ -454,7 +449,6 @@ export const getRefreshToken = asyncHandler(async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        path: "/api/auth/refresh-token",
       });
 
       return next(
@@ -473,7 +467,6 @@ export const getRefreshToken = asyncHandler(async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        path: "/api/auth/refresh-token",
       });
 
       return next(
@@ -492,7 +485,6 @@ export const getRefreshToken = asyncHandler(async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        path: "/api/auth/refresh-token",
       });
 
       return next(
@@ -511,7 +503,6 @@ export const getRefreshToken = asyncHandler(async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        path: "/api/auth/refresh-token",
       });
 
       return next(
@@ -536,6 +527,80 @@ export const getRefreshToken = asyncHandler(async (req, res, next) => {
     });
   } catch (error) {
     console.error("Refresh token error:", error);
+    next(error);
+  }
+});
+
+//@desc    Get current authenticated user
+//@route   GET /api/auth/me
+//@access  Private
+export const getMe = asyncHandler(async (req, res, next) => {
+  try {
+    // Get user ID from authenticated request
+    const userId = req.user._id;
+
+    // Fetch user with company and department details
+    const user = await User.findById(userId)
+      .populate("company", "name isActive subscription.status")
+      .populate("department", "name isActive")
+      .select("-password"); // Exclude password field
+
+    if (!user) {
+      return next(
+        new CustomError("User not found", 404, "USER_NOT_FOUND_ERROR")
+      );
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return next(
+        new CustomError(
+          "User account is deactivated",
+          401,
+          "USER_DEACTIVATED_ERROR"
+        )
+      );
+    }
+
+    // Check if company is active
+    if (!user.company.isActive) {
+      return next(
+        new CustomError(
+          "Company account is deactivated",
+          401,
+          "COMPANY_DEACTIVATED_ERROR"
+        )
+      );
+    }
+
+    // Check company subscription status
+    if (user.company.subscription.status !== "active") {
+      return next(
+        new CustomError(
+          "Company subscription is not active",
+          403,
+          "SUBSCRIPTION_INACTIVE_ERROR"
+        )
+      );
+    }
+
+    // Check if department is active
+    if (!user.department.isActive) {
+      return next(
+        new CustomError(
+          "Department is deactivated",
+          401,
+          "DEPARTMENT_DEACTIVATED_ERROR"
+        )
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    console.error("GetMe error:", error);
     next(error);
   }
 });
