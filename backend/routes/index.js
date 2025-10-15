@@ -10,6 +10,7 @@ import projectTaskRoutes from "./projectTaskRoutes.js";
 import routineTaskRoutes from "./routineTaskRoutes.js";
 import taskActivityRoutes from "./taskActivityRoutes.js";
 import notificationRoutes from "./notificationRoutes.js";
+import attachmentRoutes from "./attachmentRoutes.js";
 
 const router = express.Router();
 
@@ -35,5 +36,8 @@ router.use("/task-activities", taskActivityRoutes);
 
 // Notification routes
 router.use("/notifications", notificationRoutes);
+
+// Attachments routes (Cloudinary signature + metadata registration)
+router.use("/attachments", attachmentRoutes);
 
 export default router;

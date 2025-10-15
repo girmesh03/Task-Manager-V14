@@ -6,17 +6,26 @@ import { joinDepartmentRooms } from "./utils/SocketEmitter.js";
 import { setIO } from "./utils/SocketInstance.js";
 import CustomError from "./errorHandler/CustomError.js";
 
-const extractToken = (cookieHeader) => {
-  if (!cookieHeader) return null;
-  const tokenCookie = cookieHeader
-    .split(";")
-    .find((c) => c.trim().startsWith("access_token="));
-  return tokenCookie ? tokenCookie.split("=")[1].trim() : null;
+const extractToken = (socket) => {
+  const cookieHeader = socket.handshake?.headers?.cookie;
+  if (cookieHeader) {
+    const tokenCookie = cookieHeader
+      .split(";")
+      .find((c) => c.trim().startsWith("access_token="));
+    if (tokenCookie) return tokenCookie.split("=")[1].trim();
+  }
+
+  const authHeader = socket.handshake?.headers?.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.substring(7);
+  }
+
+  return null;
 };
 
 const socketAuth = async (socket, next) => {
   try {
-    const token = extractToken(socket.handshake.headers.cookie);
+    const token = extractToken(socket);
     if (!token) {
       return next(
         new CustomError(
@@ -34,16 +43,10 @@ const socketAuth = async (socket, next) => {
     } catch (jwtError) {
       if (jwtError.name === "TokenExpiredError") {
         return next(
-          new CustomError(
-            "Access token has expired",
-            401,
-            "TOKEN_EXPIRED_ERROR"
-          )
+          new CustomError("Access token has expired", 401, "TOKEN_EXPIRED_ERROR")
         );
       } else if (jwtError.name === "JsonWebTokenError") {
-        return next(
-          new CustomError("Invalid access token", 401, "INVALID_TOKEN_ERROR")
-        );
+        return next(new CustomError("Invalid access token", 401, "INVALID_TOKEN_ERROR"));
       } else {
         return next(
           new CustomError(
@@ -61,69 +64,46 @@ const socketAuth = async (socket, next) => {
       .populate("department", "name isActive");
 
     if (!user) {
-      return next(
-        new CustomError("User not found", 401, "USER_NOT_FOUND_ERROR")
-      );
+      return next(new CustomError("User not found", 401, "USER_NOT_FOUND_ERROR"));
     }
 
     // Check if user is verified
     if (!user.isVerified) {
       return next(
-        new CustomError(
-          "User account is not verified",
-          401,
-          "ACCOUNT_NOT_VERIFIED_ERROR"
-        )
+        new CustomError("User account is not verified", 401, "ACCOUNT_NOT_VERIFIED_ERROR")
       );
     }
 
     // Check if user is active
     if (!user.isActive) {
       return next(
-        new CustomError(
-          "User account is deactivated",
-          401,
-          "USER_DEACTIVATED_ERROR"
-        )
+        new CustomError("User account is deactivated", 401, "USER_DEACTIVATED_ERROR")
       );
     }
 
     // Check if company is active
     if (!user.company.isActive) {
-      res.clearCookie("refresh_token");
       return next(
-        new CustomError(
-          "Company account is deactivated",
-          401,
-          "COMPANY_DEACTIVATED_ERROR"
-        )
+        new CustomError("Company account is deactivated", 401, "COMPANY_DEACTIVATED_ERROR")
       );
     }
 
     // Check company subscription status
     if (user.company.subscription.status !== "active") {
       return next(
-        new CustomError(
-          "Company subscription is not active",
-          403,
-          "SUBSCRIPTION_INACTIVE_ERROR"
-        )
+        new CustomError("Company subscription is not active", 403, "SUBSCRIPTION_INACTIVE_ERROR")
       );
     }
 
     // Check if department is active
     if (!user.department.isActive) {
       return next(
-        new CustomError(
-          "Department is deactivated",
-          401,
-          "DEPARTMENT_DEACTIVATED_ERROR"
-        )
+        new CustomError("Department is deactivated", 401, "DEPARTMENT_DEACTIVATED_ERROR")
       );
     }
 
-    // Attach user data to request
-    req.user = user;
+    // Attach user data to socket
+    socket.user = user;
     next();
   } catch (error) {
     console.error("JWT verification error:", error);
@@ -152,11 +132,11 @@ const setupSocketIO = (server, corsSocketOptions) => {
     io.use(socketAuth);
 
     io.on("connection", (socket) => {
-      console.log(`Socket connected: ${socket.id} | User: ${socket.user._id}`);
+      console.log(`Socket connected: ${socket.id} | User: ${socket.user?._id}`);
 
       // Non-blocking room join
       setTimeout(() => {
-        joinDepartmentRooms(socket.user._id).catch((err) =>
+        joinDepartmentRooms(socket).catch((err) =>
           console.error(`Room join error: ${err.message}`)
         );
       }, 0);

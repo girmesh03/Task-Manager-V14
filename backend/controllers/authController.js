@@ -1,6 +1,7 @@
 // backend/controllers/authController.js
 import mongoose from "mongoose";
 import asyncHandler from "express-async-handler";
+import jwt from "jsonwebtoken";
 import { User, Company, Department } from "../models/index.js";
 import {
   generateAccessToken,
